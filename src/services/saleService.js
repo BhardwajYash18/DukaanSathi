@@ -1,17 +1,4 @@
-import {
-  collection,
-  doc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  runTransaction,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-
-const SALES_COLLECTION = 'sales';
-const PRODUCTS_COLLECTION = 'products';
-const CUSTOMERS_COLLECTION = 'customers';
+import { localStore } from './localStore';
 
 /**
  * Subscribes to real-time sales feed (ordered newest first).
@@ -20,25 +7,24 @@ const CUSTOMERS_COLLECTION = 'customers';
  * @returns {Function} unsubscribe function
  */
 export function subscribeToSales(onUpdate, onError) {
-  const q = query(collection(db, SALES_COLLECTION), orderBy('createdAt', 'desc'));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const sales = [];
-      snapshot.forEach((d) => {
-        sales.push({ id: d.id, ...d.data() });
+  try {
+    return localStore.subscribe((data) => {
+      const sorted = [...data.sales].sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
       });
-      onUpdate(sales);
-    },
-    (err) => {
-      console.error('[subscribeToSales error]', err);
-      if (onError) onError(err);
-    }
-  );
+      onUpdate(sorted);
+    });
+  } catch (err) {
+    console.error('[subscribeToSales error]', err);
+    if (onError) onError(err);
+    return () => {};
+  }
 }
 
 /**
- * Atomically records a sale:
+ * Atomically records a sale in local store:
  * 1. Decrements stock for inventoried items.
  * 2. Updates customer's outstanding credit if credit is given.
  * 3. Saves the sale document.
@@ -80,68 +66,57 @@ export async function createSale({
     throw new Error('Cash received plus credit amount must equal the total sale amount');
   }
 
-  const saleDocRef = doc(collection(db, SALES_COLLECTION));
+  const now = new Date().toISOString();
+  const saleId = `sale-${Date.now()}`;
   const saleNumber = `BILL-${Date.now().toString().slice(-6)}`;
 
-  await runTransaction(db, async (transaction) => {
-    // 1. If customer credit is involved, read customer record first
-    let currentCustomerSnap = null;
-    let customerRef = null;
-    if (customerId && credit > 0) {
-      customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
-      currentCustomerSnap = await transaction.get(customerRef);
-      if (!currentCustomerSnap.exists()) {
-        throw new Error('Selected customer record does not exist');
+  // 1. If customer credit is given, update customer outstanding credit
+  let resolvedCustomerName = customerName;
+  if (customerId && credit > 0) {
+    const customer = localStore.data.customers.find((c) => c.id === customerId);
+    if (!customer) {
+      throw new Error('Selected customer record does not exist');
+    }
+    customer.outstandingCredit = (Number(customer.outstandingCredit) || 0) + credit;
+    customer.updatedAt = now;
+    resolvedCustomerName = customer.name;
+  }
+
+  // 2. Decrement stock for inventory products
+  for (const item of items) {
+    if (item.productId) {
+      const product = localStore.data.products.find((p) => p.id === item.productId);
+      if (product) {
+        const qty = Number(item.quantity) || 1;
+        product.stockQuantity = Math.max(0, (Number(product.stockQuantity) || 0) - qty);
+        product.updatedAt = now;
       }
     }
+  }
 
-    // 2. Read products if any item has a productId to decrement stock
-    const productUpdates = [];
-    for (const item of items) {
-      if (item.productId) {
-        const prodRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-        const prodSnap = await transaction.get(prodRef);
-        if (prodSnap.exists()) {
-          const prodData = prodSnap.data();
-          const currentStock = Number(prodData.stockQuantity) || 0;
-          const newStock = Math.max(0, currentStock - Number(item.quantity || 1));
-          productUpdates.push({ ref: prodRef, newStock });
-        }
-      }
-    }
+  // 3. Create sale record
+  const newSale = {
+    id: saleId,
+    saleNumber,
+    paymentType,
+    totalAmount: total,
+    cashReceived: cash,
+    creditAmount: credit,
+    customerId: customerId || null,
+    customerName: resolvedCustomerName || (paymentType === 'cash' ? 'Cash Customer' : 'Customer'),
+    items: items.map((it) => ({
+      productId: it.productId || null,
+      productName: it.productName || 'Kirana Item',
+      quantity: Number(it.quantity) || 1,
+      price: Number(it.price) || 0,
+      subtotal: Number(it.subtotal) || 0,
+    })),
+    notes: (notes || '').trim(),
+    createdAt: now,
+  };
 
-    // 3. Perform Writes
-    // Apply product stock updates
-    for (const pUp of productUpdates) {
-      transaction.update(pUp.ref, {
-        stockQuantity: pUp.newStock,
-        updatedAt: serverTimestamp(),
-      });
-    }
+  localStore.data.sales.unshift(newSale);
+  localStore.save();
 
-    // Apply customer credit update
-    if (customerRef && currentCustomerSnap) {
-      const currentOutstanding = Number(currentCustomerSnap.data().outstandingCredit) || 0;
-      transaction.update(customerRef, {
-        outstandingCredit: currentOutstanding + credit,
-        updatedAt: serverTimestamp(),
-      });
-    }
-
-    // Save sale record
-    transaction.set(saleDocRef, {
-      saleNumber,
-      paymentType,
-      totalAmount: total,
-      cashReceived: cash,
-      creditAmount: credit,
-      customerId: customerId || null,
-      customerName: customerName || (currentCustomerSnap ? currentCustomerSnap.data().name : 'Cash Customer'),
-      items,
-      notes: notes.trim(),
-      createdAt: serverTimestamp(),
-    });
-  });
-
-  return saleDocRef.id;
+  return saleId;
 }

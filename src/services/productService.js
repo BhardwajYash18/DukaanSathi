@@ -1,17 +1,4 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  increment,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-
-const PRODUCTS_COLLECTION = 'products';
+import { localStore } from './localStore';
 
 /**
  * Subscribes to real-time product inventory updates.
@@ -20,21 +7,19 @@ const PRODUCTS_COLLECTION = 'products';
  * @returns {Function} unsubscribe function
  */
 export function subscribeToProducts(onUpdate, onError) {
-  const q = query(collection(db, PRODUCTS_COLLECTION), orderBy('name', 'asc'));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const products = [];
-      snapshot.forEach((d) => {
-        products.push({ id: d.id, ...d.data() });
-      });
-      onUpdate(products);
-    },
-    (err) => {
-      console.error('[subscribeToProducts error]', err);
-      if (onError) onError(err);
-    }
-  );
+  try {
+    return localStore.subscribe((data) => {
+      // Sort alphabetically by name
+      const sorted = [...data.products].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+      );
+      onUpdate(sorted);
+    });
+  } catch (err) {
+    console.error('[subscribeToProducts error]', err);
+    if (onError) onError(err);
+    return () => {};
+  }
 }
 
 /**
@@ -59,7 +44,9 @@ export async function addProduct({
     throw new Error('Valid selling price is required');
   }
 
-  const newDoc = {
+  const now = new Date().toISOString();
+  const newProduct = {
+    id: `prod-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     name: name.trim(),
     category: category.trim() || 'General',
     sellingPrice: price,
@@ -67,12 +54,13 @@ export async function addProduct({
     stockQuantity: Number(stockQuantity) || 0,
     unit: unit.trim() || 'packet',
     minStockThreshold: Number(minStockThreshold) || 5,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
   };
 
-  const ref = await addDoc(collection(db, PRODUCTS_COLLECTION), newDoc);
-  return ref.id;
+  localStore.data.products.push(newProduct);
+  localStore.save();
+  return newProduct.id;
 }
 
 /**
@@ -82,11 +70,14 @@ export async function addProduct({
  */
 export async function updateProduct(productId, updates) {
   if (!productId) throw new Error('Product ID is required');
-  const ref = doc(db, PRODUCTS_COLLECTION, productId);
-  await updateDoc(ref, {
-    ...updates,
-    updatedAt: serverTimestamp(),
+  const product = localStore.data.products.find((p) => p.id === productId);
+  if (!product) throw new Error('Product not found');
+
+  Object.assign(product, updates, {
+    updatedAt: new Date().toISOString(),
   });
+
+  localStore.save();
 }
 
 /**
@@ -96,9 +87,12 @@ export async function updateProduct(productId, updates) {
  */
 export async function adjustProductStock(productId, delta) {
   if (!productId) throw new Error('Product ID is required');
-  const ref = doc(db, PRODUCTS_COLLECTION, productId);
-  await updateDoc(ref, {
-    stockQuantity: increment(delta),
-    updatedAt: serverTimestamp(),
-  });
+  const product = localStore.data.products.find((p) => p.id === productId);
+  if (!product) throw new Error('Product not found');
+
+  const current = Number(product.stockQuantity) || 0;
+  product.stockQuantity = Math.max(0, current + Number(delta));
+  product.updatedAt = new Date().toISOString();
+
+  localStore.save();
 }

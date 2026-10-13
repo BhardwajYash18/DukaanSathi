@@ -116,7 +116,7 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }) {
           {/* Status Indicator */}
           <div className="status-indicator">
             <span className="status-dot"></span>
-            <span className="status-text">{t('common.online', 'Firestore Online')}</span>
+            <span className="status-text">{t('common.online', 'Store Online')}</span>
           </div>
         </div>
       </div>

@@ -11,7 +11,6 @@ import { subscribeToDashboardMetrics } from './services/dashboardService';
 import { subscribeToCustomers } from './services/customerService';
 import { subscribeToProducts } from './services/productService';
 import { seedSampleKiranaData } from './services/seedService';
-import { testFirestoreConnection } from './lib/firestoreTest';
 import { getLanguageConfig } from './i18n/languages';
 import './App.css';
 
@@ -40,11 +39,6 @@ function App() {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [seeding, setSeeding] = useState(false);
-  const [firestoreError, setFirestoreError] = useState(null);
-
-  // Diagnostics modal/drawer
-  const [diagResult, setDiagResult] = useState(null);
-  const [testingDiag, setTestingDiag] = useState(false);
 
   // Synchronize document dir and lang on mount and language change
   useEffect(() => {
@@ -53,7 +47,7 @@ function App() {
     document.documentElement.dir = config.dir;
   }, [i18n.language]);
 
-  // Subscribe to Firestore data ONLY when authenticated
+  // Subscribe to store data ONLY when authenticated
   useEffect(() => {
     if (!session) return;
 
@@ -61,11 +55,9 @@ function App() {
     const unsubDashboard = subscribeToDashboardMetrics(
       (data) => {
         setDashboardData(data);
-        setFirestoreError(null);
       },
       (err) => {
         console.error('[Dashboard subscription error]', err);
-        setFirestoreError(err);
       }
     );
 
@@ -76,7 +68,6 @@ function App() {
       },
       (err) => {
         console.error('[Customers subscription error]', err);
-        setFirestoreError(err);
       }
     );
 
@@ -87,7 +78,6 @@ function App() {
       },
       (err) => {
         console.error('[Products subscription error]', err);
-        setFirestoreError(err);
       }
     );
 
@@ -115,19 +105,6 @@ function App() {
     }
   };
 
-  const handleRunDiagnostic = async () => {
-    setTestingDiag(true);
-    setDiagResult(null);
-    try {
-      const res = await testFirestoreConnection();
-      setDiagResult(res);
-    } catch (err) {
-      setDiagResult({ success: false, message: err?.message });
-    } finally {
-      setTestingDiag(false);
-    }
-  };
-
   // If not authenticated, render LoginView with protected boundary
   if (!session) {
     return (
@@ -135,7 +112,7 @@ function App() {
         <LoginView onLoginSuccess={(user) => setSession(user)} />
         <footer style={{ marginTop: 'auto', borderTop: '1px solid #d5eee2', background: '#ffffff', padding: '1.25rem 1rem', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
           <div>
-            {t('common.footerText', 'DukaanSathi • Cloud Firestore Connected • Powered by React + Vite')}
+            {t('common.footerText', 'DukaanSathi • Smart Kirana Management • Powered by React + Vite')}
           </div>
         </footer>
       </div>
@@ -146,14 +123,6 @@ function App() {
     <div className="dukaan-app">
       {/* Top Kirana Navbar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
-
-      {/* Security Rule Warning Banner if permission denied */}
-      {firestoreError && firestoreError.code === 'permission-denied' && (
-        <div style={{ background: '#fef2f2', borderBottom: '2px solid #f87171', padding: '0.85rem 1.25rem', color: '#991b1b', textAlign: 'center', fontSize: '0.9rem' }}>
-          <strong>⚠️ {t('common.permissionDenied', 'Firestore security rules permission denied')}:</strong>
-          {' '}{t('common.permissionDeniedDesc', 'Please update Firestore security rules for dashboard, customer, and inventory collections.')}
-        </div>
-      )}
 
       {/* App Body */}
       <main className="app-content">
@@ -188,26 +157,10 @@ function App() {
         )}
       </main>
 
-      {/* Footer & Connection Diagnostic helper */}
+      {/* Footer */}
       <footer style={{ marginTop: 'auto', borderTop: '1px solid #d5eee2', background: '#ffffff', padding: '1.25rem 1rem', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
         <div>
-          {t('common.footerText', 'DukaanSathi • Cloud Firestore Connected • Powered by React + Vite')}
-        </div>
-        <div style={{ marginTop: '0.5rem' }}>
-          <button
-            type="button"
-            className="btn-link"
-            style={{ fontSize: '0.8rem', color: '#218653' }}
-            onClick={handleRunDiagnostic}
-            disabled={testingDiag}
-          >
-            {testingDiag ? t('common.runningDiagnostic', 'Running diagnostic...') : `🔍 ${t('common.runDiagnostic', 'Check Firebase Connection (Diagnostic)')}`}
-          </button>
-          {diagResult && (
-            <span style={{ marginLeft: '10px', color: diagResult.success ? '#218653' : '#dc2626', fontWeight: 600 }}>
-              {diagResult.success ? `✓ ${t('common.diagnosticOk', 'Connection verified')}` : `✕ ${t('common.diagnosticErr', { message: diagResult.message })}`}
-            </span>
-          )}
+          {t('common.footerText', 'DukaanSathi • Smart Kirana Management • Powered by React + Vite')}
         </div>
       </footer>
     </div>

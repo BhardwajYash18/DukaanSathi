@@ -1,67 +1,51 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  getDocs,
-  getDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  runTransaction,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-
-const CUSTOMERS_COLLECTION = 'customers';
-const REPAYMENTS_COLLECTION = 'repayments';
-const SALES_COLLECTION = 'sales';
+import { localStore } from './localStore';
 
 /**
- * Subscribes to real-time customer updates.
+ * Subscribes to customer updates.
  * @param {Function} onUpdate - callback receiving customers array
  * @param {Function} onError - callback receiving error
  * @returns {Function} unsubscribe function
  */
 export function subscribeToCustomers(onUpdate, onError) {
-  const q = query(collection(db, CUSTOMERS_COLLECTION), orderBy('name', 'asc'));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const customers = [];
-      snapshot.forEach((d) => {
-        customers.push({ id: d.id, ...d.data() });
-      });
-      onUpdate(customers);
-    },
-    (err) => {
-      console.error('[subscribeToCustomers error]', err);
-      if (onError) onError(err);
-    }
-  );
+  try {
+    return localStore.subscribe((data) => {
+      // Sort alphabetically by name
+      const sorted = [...data.customers].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+      );
+      onUpdate(sorted);
+    });
+  } catch (err) {
+    console.error('[subscribeToCustomers error]', err);
+    if (onError) onError(err);
+    return () => {};
+  }
 }
 
 /**
  * Creates a new customer with zero initial outstanding balance.
  * @param {Object} data - { name, phone, address }
- * @returns {Promise<string>} created document ID
+ * @returns {Promise<string>} created customer ID
  */
 export async function createCustomer({ name, phone = '', address = '' }) {
   if (!name || !name.trim()) {
     throw new Error('Customer name is required');
   }
 
-  const newDoc = {
+  const now = new Date().toISOString();
+  const newCustomer = {
+    id: `cust-${Date.now()}`,
     name: name.trim(),
     phone: phone.trim(),
     address: address.trim(),
     outstandingCredit: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
   };
 
-  const ref = await addDoc(collection(db, CUSTOMERS_COLLECTION), newDoc);
-  return ref.id;
+  localStore.data.customers.push(newCustomer);
+  localStore.save();
+  return newCustomer.id;
 }
 
 /**
@@ -82,40 +66,35 @@ export async function recordRepayment({
     throw new Error('Repayment amount must be greater than zero');
   }
 
-  const customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
-  const repaymentRef = doc(collection(db, REPAYMENTS_COLLECTION));
+  const customer = localStore.data.customers.find((c) => c.id === customerId);
+  if (!customer) {
+    throw new Error('Customer record not found');
+  }
 
-  let finalBalance = 0;
+  const currentCredit = Number(customer.outstandingCredit) || 0;
+  const finalBalance = Math.max(0, currentCredit - paymentAmount);
+  const now = new Date().toISOString();
 
-  await runTransaction(db, async (transaction) => {
-    const custSnap = await transaction.get(customerRef);
-    if (!custSnap.exists()) {
-      throw new Error('Customer record not found');
-    }
+  const repaymentId = `repay-${Date.now()}`;
+  const newRepayment = {
+    id: repaymentId,
+    customerId,
+    customerName: customer.name,
+    amount: paymentAmount,
+    paymentMode,
+    notes: (notes || '').trim(),
+    createdAt: now,
+  };
 
-    const currentData = custSnap.data();
-    const currentCredit = Number(currentData.outstandingCredit) || 0;
-    finalBalance = Math.max(0, currentCredit - paymentAmount);
+  // Atomically update customer balance and record repayment
+  customer.outstandingCredit = finalBalance;
+  customer.updatedAt = now;
+  localStore.data.repayments.unshift(newRepayment);
 
-    // 1. Record repayment event
-    transaction.set(repaymentRef, {
-      customerId,
-      customerName: currentData.name,
-      amount: paymentAmount,
-      paymentMode,
-      notes: notes.trim(),
-      createdAt: serverTimestamp(),
-    });
-
-    // 2. Atomically update customer outstanding balance
-    transaction.update(customerRef, {
-      outstandingCredit: finalBalance,
-      updatedAt: serverTimestamp(),
-    });
-  });
+  localStore.save();
 
   return {
-    repaymentId: repaymentRef.id,
+    repaymentId,
     newBalance: finalBalance,
   };
 }
@@ -128,60 +107,45 @@ export async function recordRepayment({
 export async function getCustomerLedger(customerId) {
   if (!customerId) return [];
 
-  // Query credit sales for this customer
-  const salesQuery = query(
-    collection(db, SALES_COLLECTION),
-    where('customerId', '==', customerId)
+  const customerSales = localStore.data.sales.filter(
+    (s) => s.customerId === customerId && Number(s.creditAmount) > 0
   );
 
-  // Query repayments for this customer
-  const repaymentsQuery = query(
-    collection(db, REPAYMENTS_COLLECTION),
-    where('customerId', '==', customerId)
+  const customerRepayments = localStore.data.repayments.filter(
+    (r) => r.customerId === customerId
   );
-
-  const [salesSnap, repaymentsSnap] = await Promise.all([
-    getDocs(salesQuery),
-    getDocs(repaymentsQuery),
-  ]);
 
   const ledger = [];
 
-  salesSnap.forEach((d) => {
-    const data = d.data();
-    // Only include if there was credit given
-    if (data.creditAmount > 0) {
-      ledger.push({
-        id: d.id,
-        type: 'credit_purchase',
-        title: 'उधार सामान (Credit Purchase)',
-        amount: data.creditAmount,
-        totalSaleAmount: data.totalAmount,
-        cashPaid: data.cashReceived || 0,
-        items: data.items || [],
-        notes: data.notes || '',
-        createdAt: data.createdAt,
-      });
-    }
-  });
-
-  repaymentsSnap.forEach((d) => {
-    const data = d.data();
+  customerSales.forEach((s) => {
     ledger.push({
-      id: d.id,
-      type: 'repayment',
-      title: 'जमा राशि (Payment Received)',
-      amount: data.amount,
-      paymentMode: data.paymentMode || 'cash',
-      notes: data.notes || '',
-      createdAt: data.createdAt,
+      id: s.id,
+      type: 'credit_purchase',
+      title: 'उधार सामान (Credit Purchase)',
+      amount: s.creditAmount,
+      totalSaleAmount: s.totalAmount,
+      cashPaid: s.cashReceived || 0,
+      items: s.items || [],
+      notes: s.notes || '',
+      createdAt: s.createdAt,
     });
   });
 
-  // Sort by createdAt descending
+  customerRepayments.forEach((r) => {
+    ledger.push({
+      id: r.id,
+      type: 'repayment',
+      title: 'जमा राशि (Payment Received)',
+      amount: r.amount,
+      paymentMode: r.paymentMode || 'cash',
+      notes: r.notes || '',
+      createdAt: r.createdAt,
+    });
+  });
+
   ledger.sort((a, b) => {
-    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (new Date(a.createdAt || 0)).getTime();
-    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (new Date(b.createdAt || 0)).getTime();
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
     return timeB - timeA;
   });
 

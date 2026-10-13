@@ -3,7 +3,7 @@
     "changeLanguage": "भाषा बदलें",
     "searchLanguage": "भाषा खोजें...",
     "noLanguagesFound": "कोई भाषा नहीं मिली",
-    "online": "फायरबेस ऑनलाइन",
+    "online": "दुकान ऑनलाइन",
     "loading": "लोड हो रहा है...",
     "error": "त्रुटि",
     "success": "सफल",
@@ -15,13 +15,13 @@
     "optional": "वैकल्पिक",
     "justNow": "अभी-अभी",
     "recently": "हाल ही में",
-    "permissionDenied": "फायरबेस सुरक्षा नियम अनुमति अस्वीकृत",
-    "permissionDeniedDesc": "डैशबोर्ड, ग्राहक और स्टॉक के लिए फायरबेस नियमों में अनुमति अपडेट करें।",
-    "footerText": "दुकान साथी • क्लाउड फायरस्टोर से कनेक्टेड • रिएक्ट + वाइट",
-    "runDiagnostic": "फायरबेस कनेक्शन जांचें (डायग्नोस्टिक)",
+    "permissionDenied": "अनुमति अस्वीकृत",
+    "permissionDeniedDesc": "कृपया अनुमतियों की जांच करें।",
+    "footerText": "दुकान साथी • स्मार्ट किराना प्रबंधन • रिएक्ट + वाइट",
+    "runDiagnostic": "सिस्टम स्थिति जांचें",
     "runningDiagnostic": "जांच चल रही है...",
-    "diagnosticOk": "कनेक्शन ठीक है",
-    "diagnosticErr": "त्रुटि: {{message}}"
+    "diagnosticOk": "सिस्टम ठीक है",
+    "diagnosticErr": "सूचना: {{message}}"
   },
   "nav": {
     "dashboard": "डैशबोर्ड",
