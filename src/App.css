@@ -241,6 +241,7 @@ body {
 .tab-badge-sales { background: #3b82f6; }
 .tab-badge-khata { background: #6254e8; }
 .tab-badge-inventory { background: #f58216; }
+.tab-badge-ai { background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); }
 
 /* Status Indicator */
 .status-indicator {

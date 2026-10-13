@@ -6,6 +6,7 @@ import SalesEntryView from './components/SalesEntryView';
 import KhataView from './components/KhataView';
 import InventoryView from './components/InventoryView';
 import LoginView from './components/LoginView';
+import AIView from './components/ai/AIView';
 import { getDemoSession, logoutDemo } from './services/authService';
 import { subscribeToDashboardMetrics } from './services/dashboardService';
 import { subscribeToCustomers } from './services/customerService';
@@ -154,6 +155,20 @@ function App() {
 
         {activeTab === 'inventory' && (
           <InventoryView products={products} />
+        )}
+
+        {activeTab === 'ai' && (
+          <AIView
+            shopContext={{
+              todaySales: dashboardData.metrics.todaySales,
+              todayCashCollected: dashboardData.metrics.todayCashCollected,
+              totalOutstandingCredit: dashboardData.metrics.totalOutstandingCredit,
+              customerCount: dashboardData.metrics.customerCount,
+              salesCount: dashboardData.metrics.salesCount,
+              lowStockProducts: dashboardData.lowStockProducts,
+              recentTransactions: dashboardData.recentTransactions,
+            }}
+          />
         )}
       </main>
 
