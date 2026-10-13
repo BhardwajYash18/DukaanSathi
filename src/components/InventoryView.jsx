@@ -106,13 +106,16 @@ export default function InventoryView({ products }) {
       {/* Top Header */}
       <div className="inventory-header">
         <div>
-          <h2>📦 {t('inventory.title', 'Store Inventory')}</h2>
+          <h2>{t('inventory.title', 'Store Inventory')}</h2>
           <p className="subtitle">{t('inventory.subtitle', 'Stock quantities, selling prices, and low-stock alerts')}</p>
         </div>
         <div className="inventory-header-right">
           {lowStockCount > 0 && (
             <div className="low-stock-summary-pill">
-              ⚠️ {t('inventory.lowStockSummary', { count: lowStockCount })}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+              </svg>
+              <span>{t('inventory.lowStockSummary', { count: lowStockCount })}</span>
             </div>
           )}
           <button
@@ -377,7 +380,7 @@ export default function InventoryView({ products }) {
                 </div>
               </div>
 
-              {formError && <div className="form-error-banner">⚠️ {formError}</div>}
+              {formError && <div className="form-error-banner">{formError}</div>}
 
               <div className="modal-footer">
                 <button

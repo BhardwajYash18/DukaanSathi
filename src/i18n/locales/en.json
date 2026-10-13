@@ -17,7 +17,7 @@
     "recently": "Recently",
     "permissionDenied": "Access restricted",
     "permissionDeniedDesc": "Please check permissions.",
-    "footerText": "DukaanSathi • Smart Kirana Management • Powered by React + Vite",
+    "footerText": "DukaanSathi • Smart Kirana Management",
     "runDiagnostic": "Check System Status",
     "runningDiagnostic": "Checking status...",
     "diagnosticOk": "System verified",

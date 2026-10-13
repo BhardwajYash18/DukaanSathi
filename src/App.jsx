@@ -112,7 +112,7 @@ function App() {
         <LoginView onLoginSuccess={(user) => setSession(user)} />
         <footer style={{ marginTop: 'auto', borderTop: '1px solid #d5eee2', background: '#ffffff', padding: '1.25rem 1rem', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
           <div>
-            {t('common.footerText', 'DukaanSathi • Smart Kirana Management • Powered by React + Vite')}
+            {t('common.footerText', 'DukaanSathi • Smart Kirana Management')}
           </div>
         </footer>
       </div>
@@ -160,7 +160,7 @@ function App() {
       {/* Footer */}
       <footer style={{ marginTop: 'auto', borderTop: '1px solid #d5eee2', background: '#ffffff', padding: '1.25rem 1rem', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>
         <div>
-          {t('common.footerText', 'DukaanSathi • Smart Kirana Management • Powered by React + Vite')}
+          {t('common.footerText', 'DukaanSathi • Smart Kirana Management')}
         </div>
       </footer>
     </div>

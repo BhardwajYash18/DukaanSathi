@@ -195,7 +195,7 @@ export default function KhataView({ customers }) {
                     onClick={() => setSelectedCustomer(cust)}
                   >
                     <div className="cust-avatar">
-                      {cust.name ? cust.name[0].toUpperCase() : '👤'}
+                      {cust.name ? cust.name[0].toUpperCase() : 'U'}
                     </div>
                     <div className="cust-info">
                       <div className="cust-name">{cust.name}</div>
@@ -222,7 +222,14 @@ export default function KhataView({ customers }) {
         <div className="customer-detail-panel">
           {!selectedCustomer ? (
             <div className="select-prompt-card">
-              <span className="prompt-icon">👈</span>
+              <div className="prompt-icon-badge" aria-hidden="true">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
               <h3>{t('khata.selectPromptTitle', 'Select a customer to view account details')}</h3>
               <p>{t('khata.selectPromptDesc', 'Click any customer from the left list or create a new account.')}</p>
             </div>
@@ -234,10 +241,20 @@ export default function KhataView({ customers }) {
                   <h3>{selectedCustomer.name}</h3>
                   <div className="cust-meta-row">
                     {selectedCustomer.phone && (
-                      <span>📞 {selectedCustomer.phone}</span>
+                      <span className="cust-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                        </svg>
+                        <span>{selectedCustomer.phone}</span>
+                      </span>
                     )}
                     {selectedCustomer.address && (
-                      <span>📍 {selectedCustomer.address}</span>
+                      <span className="cust-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
+                        </svg>
+                        <span>{selectedCustomer.address}</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -367,7 +384,7 @@ export default function KhataView({ customers }) {
                 onChange={(e) => setAddress(e.target.value)}
               />
 
-              {custError && <div className="form-error-banner">⚠️ {custError}</div>}
+              {custError && <div className="form-error-banner">{custError}</div>}
 
               <div className="modal-footer">
                 <button
@@ -395,7 +412,7 @@ export default function KhataView({ customers }) {
         <div className="modal-overlay">
           <div className="modal-dialog">
             <div className="modal-header">
-              <h3>💵 {t('khata.modalRepaymentTitle', 'Receive Payment (Jama)')}</h3>
+              <h3>{t('khata.modalRepaymentTitle', 'Receive Payment (Jama)')}</h3>
               <button
                 type="button"
                 className="btn-close"
@@ -437,14 +454,14 @@ export default function KhataView({ customers }) {
                   className={`btn-toggle ${paymentMode === 'cash' ? 'active cash' : ''}`}
                   onClick={() => setPaymentMode('cash')}
                 >
-                  💵 {t('khata.modeCash', 'Cash')}
+                  {t('khata.modeCash', 'Cash')}
                 </button>
                 <button
                   type="button"
                   className={`btn-toggle ${paymentMode === 'upi' ? 'active partial' : ''}`}
                   onClick={() => setPaymentMode('upi')}
                 >
-                  📱 {t('khata.modeUPI', 'UPI / PhonePe / GPay')}
+                  {t('khata.modeUPI', 'UPI / PhonePe / GPay')}
                 </button>
               </div>
 
@@ -458,7 +475,7 @@ export default function KhataView({ customers }) {
               />
 
               {repaymentError && (
-                <div className="form-error-banner">⚠️ {repaymentError}</div>
+                <div className="form-error-banner">{repaymentError}</div>
               )}
 
               <div className="modal-footer">
@@ -476,7 +493,7 @@ export default function KhataView({ customers }) {
                 >
                   {recordingRepayment
                     ? t('khata.recordingPayment', 'Recording payment...')
-                    : `✓ ${t('khata.confirmRepaymentBtn', 'Confirm Payment')}`}
+                    : t('khata.confirmRepaymentBtn', 'Confirm Payment')}
                 </button>
               </div>
             </form>

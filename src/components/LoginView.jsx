@@ -5,7 +5,6 @@ import { loginDemo, DEMO_CREDENTIALS } from '../services/authService';
 
 export default function LoginView({ onLoginSuccess }) {
   const { t } = useTranslation();
-
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -17,17 +16,20 @@ export default function LoginView({ onLoginSuccess }) {
     setError(null);
     setLoading(true);
 
-    // Call demo authentication service
-    const res = loginDemo(mobile, password);
+    const result = loginDemo(mobile, password);
 
-    if (res.success) {
-      setLoading(false);
-      onLoginSuccess(res.user);
+    if (result.success) {
+      if (onLoginSuccess) {
+        onLoginSuccess(result.user);
+      }
     } else {
-      setLoading(false);
-      // Clear password field immediately for security and safety
+      setError(
+        result.errorKey
+          ? t(result.errorKey, result.errorMessage)
+          : result.errorMessage
+      );
       setPassword('');
-      setError(t(res.errorKey, res.errorMessage));
+      setLoading(false);
     }
   };
 
@@ -40,11 +42,11 @@ export default function LoginView({ onLoginSuccess }) {
   return (
     <div className="login-screen-wrapper">
       <div className="login-card">
-        {/* Top Header with Brand and Language Selector */}
-        <div className="login-header-row">
-          <div className="brand-logo login-brand">
+        {/* Top Header Row with Logo & Language Selector */}
+        <div className="login-card-header">
+          <div className="login-brand">
             <div className="brand-store-icon" aria-hidden="true">
-              <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
+              <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
                 <ellipse cx="24" cy="44" rx="20" ry="3" fill="#D5EEE2" />
                 <rect x="8" y="16" width="32" height="26" rx="3" fill="#EBF4FE" stroke="#3B82F6" strokeWidth="2" />
                 <rect x="13" y="24" width="10" height="18" rx="2" fill="#FFFFFF" stroke="#3B82F6" strokeWidth="1.5" />
@@ -61,12 +63,11 @@ export default function LoginView({ onLoginSuccess }) {
                 <path d="M5 16 Q24 20 43 16" stroke="#3B82F6" strokeWidth="2" fill="none" />
               </svg>
             </div>
-            <div className="brand-text-block">
-              <div className="brand-title">DukaanSathi</div>
-              <div className="brand-subtitle">{t('nav.brandSubtitle', 'Smart Kirana Ledger')}</div>
+            <div>
+              <div className="login-brand-title">DukaanSathi</div>
+              <div className="login-brand-sub">{t('nav.brandSubtitle', 'Smart Kirana Ledger')}</div>
             </div>
           </div>
-
           <div className="login-lang-wrapper">
             <LanguageSelector />
           </div>
@@ -81,7 +82,11 @@ export default function LoginView({ onLoginSuccess }) {
         {/* Error Notification Banner */}
         {error && (
           <div className="login-error-banner" role="alert">
-            <span className="error-icon" aria-hidden="true">⚠️</span>
+            <span className="error-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+            </span>
             <span>{error}</span>
           </div>
         )}
@@ -93,7 +98,11 @@ export default function LoginView({ onLoginSuccess }) {
               {t('auth.mobileLabel', 'Mobile Number')}
             </label>
             <div className="input-with-prefix">
-              <span className="input-prefix" aria-hidden="true">📱</span>
+              <span className="input-prefix" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+              </span>
               <input
                 id="login-mobile"
                 type="text"
@@ -113,7 +122,11 @@ export default function LoginView({ onLoginSuccess }) {
               {t('auth.passwordLabel', 'Password')}
             </label>
             <div className="password-input-wrapper">
-              <span className="input-prefix" aria-hidden="true">🔒</span>
+              <span className="input-prefix" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                </svg>
+              </span>
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
@@ -131,9 +144,21 @@ export default function LoginView({ onLoginSuccess }) {
                 aria-label={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
               >
                 {showPassword ? (
-                  <span title={t('auth.hidePassword', 'Hide')}>👁️‍🗨️ {t('auth.hidePassword', 'Hide')}</span>
+                  <span className="pwd-toggle-text">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                    <span>{t('auth.hidePassword', 'Hide')}</span>
+                  </span>
                 ) : (
-                  <span title={t('auth.showPassword', 'Show')}>👁️ {t('auth.showPassword', 'Show')}</span>
+                  <span className="pwd-toggle-text">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    <span>{t('auth.showPassword', 'Show')}</span>
+                  </span>
                 )}
               </button>
             </div>
@@ -144,14 +169,18 @@ export default function LoginView({ onLoginSuccess }) {
             className="btn btn-primary btn-block btn-login"
             disabled={loading}
           >
-            {loading ? t('auth.loggingIn', 'Signing in...') : `🏪 ${t('auth.loginBtn', 'Login to Store')}`}
+            {loading ? t('auth.loggingIn', 'Signing in...') : t('auth.loginBtn', 'Login to Store')}
           </button>
         </form>
 
         {/* Demo Credentials Callout Box */}
         <div className="demo-credentials-box">
           <div className="demo-box-header">
-            <span className="demo-bulb" aria-hidden="true">💡</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#218653" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
             <strong>{t('auth.demoHintTitle', 'Hackathon Demo Credentials')}</strong>
           </div>
           <div className="demo-credentials-details">
@@ -169,7 +198,7 @@ export default function LoginView({ onLoginSuccess }) {
             className="btn btn-sm btn-outline btn-autofill"
             onClick={handleFillDemo}
           >
-            ✨ {t('auth.autoFillDemo', 'Auto-fill Demo Credentials')}
+            {t('auth.autoFillDemo', 'Auto-fill Demo Credentials')}
           </button>
         </div>
 

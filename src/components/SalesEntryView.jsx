@@ -203,7 +203,7 @@ export default function SalesEntryView({ products, customers, onSaleCompleted })
       {/* Success Receipt Modal/Card */}
       {successReceipt && (
         <div className="receipt-success-card">
-          <div className="receipt-badge">✓ {t('sales.saleRecorded', 'Sale Recorded Successfully')}</div>
+          <div className="receipt-badge">{t('sales.saleRecorded', 'Sale Recorded Successfully')}</div>
           <div className="receipt-body">
             <h3>{t('sales.billTotal', { amount: formatCurrency(successReceipt.totalAmount) })}</h3>
             <p>
@@ -240,7 +240,7 @@ export default function SalesEntryView({ products, customers, onSaleCompleted })
         <div className="catalog-column">
           <div className="section-card">
             <div className="card-header-flex">
-              <h3>📦 {t('sales.selectItems', 'Select Items')}</h3>
+              <h3>{t('sales.selectItems', 'Select Items')}</h3>
               <span className="badge-count">
                 {t('sales.itemsAvailable', { count: products.length })}
               </span>
@@ -328,7 +328,7 @@ export default function SalesEntryView({ products, customers, onSaleCompleted })
         {/* Right Column: Bill Cart & Payment Options */}
         <div className="cart-column">
           <div className="section-card cart-card">
-            <h3>🛒 {t('sales.currentBill', 'Current Bill')}</h3>
+            <h3>{t('sales.currentBill', 'Current Bill')}</h3>
 
             {cart.length === 0 ? (
               <div className="cart-empty">
@@ -408,21 +408,21 @@ export default function SalesEntryView({ products, customers, onSaleCompleted })
                   className={`btn-toggle ${paymentType === 'cash' ? 'active cash' : ''}`}
                   onClick={() => setPaymentType('cash')}
                 >
-                  💵 {t('sales.fullCash', 'Full Cash')}
+                  {t('sales.fullCash', 'Full Cash')}
                 </button>
                 <button
                   type="button"
                   className={`btn-toggle ${paymentType === 'credit' ? 'active credit' : ''}`}
                   onClick={() => setPaymentType('credit')}
                 >
-                  📝 {t('sales.fullCredit', 'Full Credit (Udhar)')}
+                  {t('sales.fullCredit', 'Full Credit (Udhar)')}
                 </button>
                 <button
                   type="button"
                   className={`btn-toggle ${paymentType === 'partial' ? 'active partial' : ''}`}
                   onClick={() => setPaymentType('partial')}
                 >
-                  ⚖️ {t('sales.partialPayment', 'Partial Cash + Credit')}
+                  {t('sales.partialPayment', 'Partial Cash + Credit')}
                 </button>
               </div>
 
@@ -513,7 +513,7 @@ export default function SalesEntryView({ products, customers, onSaleCompleted })
 
               {errorMessage && (
                 <div className="form-error-banner">
-                  ⚠️ {errorMessage}
+                  {errorMessage}
                 </div>
               )}
 
